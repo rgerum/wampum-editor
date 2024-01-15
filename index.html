@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Wampum</title>
+
+    <style>
+        body {
+            --wampum-width: 20px;
+            --wampum-height: 30px;
+        }
+        #wampum>div {
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            align-items: center;
+        }
+        .wampum_col_label {
+            width: var(--wampum-width);
+            margin: 1px;
+        }
+        .wampum_row_label {
+            width: 30px;
+        }
+        .wampum_item {
+            width: var(--wampum-width);        /* Adjust the width as needed */
+            height: var(--wampum-height);        /* Adjust the height to make it look like a tube */
+            border-radius: 0px; /* Half of the height to make it round */
+            margin: 1px;
+            --wampum: #f0f0f0;
+            --wampum3: transparent;
+            --wampum2: #4f4f4f;
+            background-color: var(--wampum);
+            background-image: linear-gradient(to right, var(--wampum2), var(--wampum3) 30%, var(--wampum3) 70%, var(--wampum2)); /* Gradient to create cylindrical effect */
+            transition: background-color 0.3s ease;
+        }
+        .wampum_item[data-selected="true"] {
+            border: 1px solid red;
+            margin: 0px;
+        }
+        #current_col {
+            display: flex;
+            flex-direction: row;
+            align-items: end;
+        }
+        .color {
+            width: 30px;
+            height: 30px;
+            border: 1px solid green;
+            border-radius: 20px;
+        }
+        .color[selected="true"] {
+            border: 1px solid red;
+            border-radius: 10px;
+            transition: border-radius 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+<div id="color_chooser"></div>
+<button onclick="save()">save</button>
+<button onclick="load()">load</button>
+<button onclick="add_row()">add row</button>
+<button onclick="del_row()">del row</button>
+<button onclick="add_col()">add col</button>
+<button onclick="del_col()">del col</button>
+<textarea id="wampum_text"></textarea>
+<span id="counts"></span>
+<div id="wampum"></div>
+<button onclick="col_left()">&lt;-</button>
+<button onclick="col_right()">&gt;-</button>
+<div id="current_col"></div>
+<script>
+    const design = `
+0000001000000000000000
+0010111111010000000000
+0001001000100000000000
+0000010100000000000000
+    `
+    let curr_pos = [0, 0];
+    document.addEventListener("keydown", (e) => {
+        console.log(e.key);
+        if (e.key === "s") {
+            save();
+        }
+        if (e.key === "l") {
+            load();
+        }
+        if(e.key === "ArrowRight") {
+            curr_pos[1]++;
+            if(curr_pos[1] >= grid[0].length) curr_pos[1] = grid[0].length - 1;
+            highlight_posl()
+        }
+        if(e.key === "ArrowLeft") {
+            curr_pos[1]--;
+            if(curr_pos[1] < 0) curr_pos[1] = 0;
+            highlight_posl()
+        }
+        if(e.key === "ArrowUp") {
+            curr_pos[0]--;
+            if(curr_pos[0] < 0) curr_pos[0] = 0;
+            highlight_posl()
+        }
+        if(e.key === "ArrowDown") {
+            curr_pos[0]++;
+            if(curr_pos[0] >= grid.length) curr_pos[0] = grid.length - 1;
+            highlight_posl()
+        }
+        if(e.key === " ") {
+            change_item(curr_pos[0], curr_pos[1]);
+        }
+        if(e.key >= "0" && e.key <= "9") {
+            if(colors[e.key]) {
+                choose_color(e.key);
+            }
+        }
+        if(e.key === "PageUp") {
+            col_right();
+        }
+        if(e.key === "PageDown") {
+            col_left();
+        }
+    });
+
+    function highlight_posl() {
+        let counts = []
+        for (let i = 0; i < grid.length; i++) {
+            for (let k = 0; k < grid[i].length; k++) {
+                grid_divs[i][k].setAttribute("data-selected", "false");
+            }
+        }
+        grid_divs[curr_pos[0]][curr_pos[1]].setAttribute("data-selected", "true");
+    }
+
+    function save() {
+        localStorage.setItem("wampum", grid_to_design(grid));
+        console.log("grid_to_design(grid)", grid_to_design(grid));
+    }
+    function load() {
+        console.log(localStorage.getItem("wampum"))
+        grid = design_to_grid(localStorage.getItem("wampum"));
+        create_display(grid)
+    }
+    function grid_to_design(grid) {
+        let design = ""
+        for(let i = 0; i < grid.length; i++) {
+            for(let j = 0; j < grid[i].length; j++) {
+                design += grid[i][j]
+            }
+            design += "\n"
+        }
+        return design;
+    }
+    function design_to_grid(design) {
+        let grid = []
+        for(let line of design.split("\n")) {
+            line = line.trim();
+            if (line.length === 0) continue;
+            grid.push([]);
+            for (let i = 0; i < line.length; i++) {
+                grid[grid.length - 1].push(line[i]);
+            }
+        }
+        return grid
+    }
+    let colors = {"0":"white", "1": "black", "2": "red"}
+    let current_color = "1"
+    let color_chooser_buttons = {}
+    function add_color_chooser() {
+        let parent = document.getElementById("color_chooser");
+        parent.innerHTML = "";
+        for(let color in colors) {
+            let button = appendChild(parent, "button", {className: "color", innerText: colors[color]});
+            button.style.setProperty("--wampum", colors[color]);
+            button.style.background = colors[color]
+            button.addEventListener("click", () => {
+                current_color = color
+            })
+            color_chooser_buttons[color] = button
+        }
+    }
+    function choose_color(color) {
+        current_color = color
+        for(let color in color_chooser_buttons) {
+            let button = color_chooser_buttons[color]
+            if(color !== current_color) button.setAttribute("selected", "false");
+            else button.setAttribute("selected", "true");
+        }
+    }
+    add_color_chooser();
+    let grid = design_to_grid(design);
+    function item_clicked(event) {
+        let element = event.target;
+        console.log(element.i, element.j)
+        change_item(element.i, element.j);
+    }
+    function change_item(i, j)  {
+        let c = grid[i][j];
+        if(c === current_color) c = "0";
+        else c = current_color;
+        grid[i][j] = c;
+        grid_divs[i][j].style.setProperty("--wampum", colors[grid[i][j]]);
+        update_counts();
+    }
+    function update_counts() {
+        let counts = {}
+        for(let i = 0; i < grid.length; i++) {
+            for(let j = 0; j < grid[i].length; j++) {
+                if(!counts[grid[i][j]]) counts[grid[i][j]] = 0
+                counts[grid[i][j]] += 1
+            }
+        }
+        document.getElementById("counts").innerHTML = JSON.stringify(counts)
+    }
+    function appendChild(parent, tag, {className, innerText} = {}) {
+        console.log(tag, className, innerText)
+        let index = document.createElement(tag)
+        if(className) {
+            index.className = className
+        }
+        if(innerText) {
+            index.innerText = innerText
+        }
+        parent.appendChild(index);
+        return index
+    }
+
+    let grid_divs;
+    function create_display(grid) {
+        grid_divs = [];
+        let parent_element = document.getElementById("wampum");
+        parent_element.innerHTML = "";
+        let row = appendChild(parent_element, "div");
+
+        appendChild(row, "span", {className: "wampum_row_label", innerText: "#"});
+        for(let j = 0; j < grid[0].length; j++){
+            appendChild(row, "span", {className:"wampum_col_label", innerText:j+1});
+        }
+        for(let i = 0; i < grid.length; i++) {
+            let row = appendChild(parent_element, "div");
+            appendChild(row, "div", {className:"wampum_row_label", innerText:i+1});
+            grid_divs.push([]);
+            for(let j = 0; j < grid[i].length; j++){
+                let element = appendChild(row, "div", {className: "wampum_item"});
+                element.style.setProperty("--wampum", colors[grid[i][j]]);
+                element.i = i;
+                element.j = j;
+                element.onclick = item_clicked
+                grid_divs[grid_divs.length - 1].push(element);
+            }
+        }
+        update_counts();
+        return grid_divs
+    }
+    create_display(grid);
+
+    function add_row(index) {
+        if(index === undefined) index = grid.length
+        grid.splice(index, 0, [])
+        for (let j = 0; j < grid[0].length; j++) {
+            grid[index].push("0")
+        }
+        create_display(grid);
+    }
+    function del_row(index) {
+        if(index === undefined) index = grid.length - 1
+        grid.splice(index, 1)
+        create_display(grid);
+    }
+    function add_col(index) {
+        if(index === undefined) index = grid[0].length
+        for (let i = 0; i < grid.length; i++) {
+            grid[i].splice(index, 0, "0")
+        }
+        create_display(grid);
+    }
+    function del_col(index) {
+        if(index === undefined) index = grid[0].length - 1
+        for (let i = 0; i < grid.length; i++) {
+            grid[i].splice(index, 1)
+        }
+        create_display(grid);
+    }
+    function highlight_col(j) {
+        let counts = []
+        for (let i = 0; i < grid.length; i++) {
+            for(let k = 0; k < grid[i].length; k++) {
+                grid_divs[i][k].setAttribute("data-selected", "false");
+            }
+            grid_divs[i][j].setAttribute("data-selected", "true");
+            if(counts.length && counts[counts.length-1][0] == grid[i][j]) {
+                counts[counts.length-1][1] += 1;
+            }
+            else {
+                counts.push([grid[i][j], 1])
+            }
+        }
+        let parent = document.getElementById("current_col");
+        parent.innerHTML = ""
+        for(let i = 0; i < counts.length; i++) {
+            let element = appendChild(parent, "div", {className: "wampum_item"});
+            element.style.setProperty("--wampum", colors[counts[i][0]]);
+            appendChild(parent, "span", {innerText:`x${counts[i][1]} `});
+        }
+    }
+    let current_col = -1
+    function col_left() {
+        current_col -= 1
+        if(current_col < 0) current_col = 0
+        highlight_col(current_col)
+    }
+    function col_right() {
+        current_col += 1
+        if(current_col >= grid[0].length) current_col = grid[0].length - 1
+        highlight_col(current_col)
+    }
+
+</script>
+</body>
+</html>
