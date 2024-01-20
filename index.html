@@ -8,6 +8,7 @@
         body {
             --wampum-width: 20px;
             --wampum-height: 20px;
+            margin: 0;
         }
         #wampum>div {
             display: flex;
@@ -18,9 +19,11 @@
         .wampum_col_label {
             width: var(--wampum-width);
             margin: 1px;
+            text-align: center;
         }
         .wampum_row_label {
             width: 30px;
+            text-align: right;
         }
         .wampum_item {
             width: var(--wampum-width);        /* Adjust the width as needed */
@@ -33,6 +36,7 @@
             background-color: var(--wampum);
             background-image: linear-gradient(to right, var(--wampum2), var(--wampum3) 30%, var(--wampum3) 70%, var(--wampum2)); /* Gradient to create cylindrical effect */
             transition: background-color 0.3s ease;
+            display: inline-block;
         }
         .wampum_item[data-selected="true"] {
             border: 1px solid red;
@@ -54,78 +58,159 @@
             border-radius: 10px;
             transition: border-radius 0.3s ease;
         }
+
+        .canvas_container {
+            overflow: scroll;
+            height: calc(100vh - 40px - 40px - 5px);
+            width: 100%;
+            background: gray;
+            border-bottom: 2px solid black;
+            border-top: 2px solid black;
+            position: relative;
+        }
+        .wampum_container {
+            display: flex;
+            align-items: center;
+            flex-direction: row;
+            height: 100%;
+        }
+        .wampum_col_highlight {
+            background: transparent;
+            width: 22px;
+            height: 100%;
+            display: block;
+            position: absolute;
+            left: calc(var(--col) * 22px + 26px);
+            z-index: 6;
+            --col: -9999;
+            border: 4px solid red;
+            border-bottom: 0;
+            border-top: 0;
+        }
+        #wampum {
+            z-index: 5;
+        }
+        .toolbar {
+            display: flex;
+            align-items: center;
+            height: 40px;
+        }
+
+        button {
+            height: 30px;
+            padding: 5px 10px;
+            border: none;
+            margin: 0 5px;
+        }
+
+        #counts {
+            margin-left: auto;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+        }
+        #color_chooser {
+            margin: auto;
+        }
+        .footer {
+            display: flex;
+            align-items: center;
+            height: 40px;
+        }
+        .footer button {
+            font-size: 19px;
+            padding: 5px 20px;
+        }
     </style>
 </head>
 <body>
-<div id="color_chooser"></div>
-<button onclick="save()">save</button>
-<button onclick="load()">load</button>
-<button onclick="add_row()">add row</button>
-<button onclick="del_row()">del row</button>
-<button onclick="add_col()">add col</button>
-<button onclick="del_col()">del col</button>
-<textarea id="wampum_text"></textarea>
-<span id="counts"></span>
-<div id="wampum"></div>
-<button onclick="col_left()">&lt;-</button>
-<button onclick="col_right()">&gt;-</button>
-<div id="current_col"></div>
+<div class="toolbar">
+    <button onclick="save()">save</button>
+    <button onclick="load()">load</button>
+    <button onclick="add_row()">add row</button>
+    <button onclick="del_row()">del row</button>
+    <button onclick="add_col()">add col</button>
+    <button onclick="del_col()">del col</button>
+    <div id="color_chooser"></div>
+    <span id="counts"></span>
+</div>
+<div class="canvas_container">
+    <div class="wampum_container">
+        <div class="wampum_col_highlight"></div>
+        <div id="wampum"></div>
+    </div>
+</div>
+<div class="footer">
+    <button onclick="col_left()">←</button>
+    <button onclick="col_right()">→</button>
+    <div id="current_col"></div>
+</div>
 <script>
     const design = `
-0000000010000000000000000000000100000000000000000000000000000000000000000000000000
-0000000111000000000000000000001110000000040004000400000000000000000000000000000000
-0000000010000000000030000000000100000000004004004000000000000000000000000000000000
-0100011111110001303333303100011111000100000404040000000000010000000000000000000000
-0010101111101010030333030010100100101000000044400000000000011000000000000000000000
-0001000111000100000030000001001110010000444444444440001111111100000000000000000000
-0000000010000000000303000000011111000000000044400000010111100000000000000000000000
-0000000101000000003303300000001010000000000404040000100100100000000000000000000000
-0000001000100000000000000000010001000000004004004000000100100000000000000000000000
-0000010000010000000000000000100000100000040004000400000000000000000000000000000000
-0000110000011000000000000001100000110000000000000000000000000000000000000000000000
+000000001000000000000000000000010000000000000000000000000000000
+000000011100000000000000000000111000000004000400040000000000000
+000000001000000000003000000000010000000000400400400000000000000
+010001111111000130333330310001111100010000040404000000000001000
+001010111110101003033303001010010010100000004440000000000001100
+000100011100010000003000000100111001000044444444444000111111110
+000000001000000000030300000001111100000000004440000001011110000
+000000010100000000330330000000101000000000040404000010010010000
+000000100010000000000000000001000100000000400400400000010010000
+000001000001000000000000000010000010000004000400040000000000000
+000011000001100000000000000110000011000000000000000000000000000
     `
     let curr_pos = [0, 0];
     document.addEventListener("keydown", (e) => {
         console.log(e.key);
         if (e.key === "s") {
             save();
+            e.preventDefault();
         }
         if (e.key === "l") {
             load();
+            e.preventDefault();
         }
         if(e.key === "ArrowRight") {
             curr_pos[1]++;
             if(curr_pos[1] >= grid[0].length) curr_pos[1] = grid[0].length - 1;
             highlight_posl()
+            e.preventDefault();
         }
         if(e.key === "ArrowLeft") {
             curr_pos[1]--;
             if(curr_pos[1] < 0) curr_pos[1] = 0;
             highlight_posl()
+            e.preventDefault();
         }
         if(e.key === "ArrowUp") {
             curr_pos[0]--;
             if(curr_pos[0] < 0) curr_pos[0] = 0;
             highlight_posl()
+            e.preventDefault();
         }
         if(e.key === "ArrowDown") {
             curr_pos[0]++;
             if(curr_pos[0] >= grid.length) curr_pos[0] = grid.length - 1;
             highlight_posl()
+            e.preventDefault();
         }
         if(e.key === " ") {
             change_item(curr_pos[0], curr_pos[1]);
+            e.preventDefault();
         }
         if(e.key >= "0" && e.key <= "9") {
             if(colors[e.key]) {
                 choose_color(e.key);
+                e.preventDefault();
             }
         }
         if(e.key === "PageUp") {
             col_right();
+            e.preventDefault();
         }
         if(e.key === "PageDown") {
             col_left();
+            e.preventDefault();
         }
     });
 
@@ -177,11 +262,11 @@
         let parent = document.getElementById("color_chooser");
         parent.innerHTML = "";
         for(let color in colors) {
-            let button = appendChild(parent, "button", {className: "color", innerText: colors[color]});
+            let button = appendChild(parent, "button", {className: "color"});
             button.style.setProperty("--wampum", colors[color]);
             button.style.background = colors[color]
             button.addEventListener("click", () => {
-                current_color = color
+                choose_color(color)
             })
             color_chooser_buttons[color] = button
         }
@@ -195,6 +280,7 @@
         }
     }
     add_color_chooser();
+    choose_color("1")
     let grid = design_to_grid(design);
     function item_clicked(event) {
         let element = event.target;
@@ -217,7 +303,11 @@
                 counts[grid[i][j]] += 1
             }
         }
-        document.getElementById("counts").innerHTML = JSON.stringify(counts)
+        let counts2 = []
+        for(let color in counts) {
+            counts2.push([color, counts[color]])
+        }
+        add_count_display(document.getElementById("counts"), counts2, "Total Bead Count: ");
     }
     function appendChild(parent, tag, {className, innerText} = {}) {
         console.log(tag, className, innerText)
@@ -252,6 +342,11 @@
                 element.style.setProperty("--wampum", colors[grid[i][j]]);
                 element.i = i;
                 element.j = j;
+                function mouse_enter(e) {
+                    curr_pos = [i, j];
+                    highlight_posl();
+                }
+                element.onmouseenter = mouse_enter
                 element.onclick = item_clicked
                 grid_divs[grid_divs.length - 1].push(element);
             }
@@ -288,6 +383,15 @@
         }
         create_display(grid);
     }
+
+    function add_count_display(parent, counts, text) {
+        parent.innerHTML = text
+        for(let i = 0; i < counts.length; i++) {
+            let element = appendChild(parent, "div", {className: "wampum_item"});
+            element.style.setProperty("--wampum", colors[counts[i][0]]);
+            appendChild(parent, "span", {innerText:`x${counts[i][1]} `});
+        }
+    }
     function highlight_col(j) {
         let counts = []
         for (let i = 0; i < grid.length; i++) {
@@ -303,12 +407,8 @@
             }
         }
         let parent = document.getElementById("current_col");
-        parent.innerHTML = ""
-        for(let i = 0; i < counts.length; i++) {
-            let element = appendChild(parent, "div", {className: "wampum_item"});
-            element.style.setProperty("--wampum", colors[counts[i][0]]);
-            appendChild(parent, "span", {innerText:`x${counts[i][1]} `});
-        }
+        add_count_display(parent, counts, "Col Pattern: ");
+        document.getElementsByClassName("wampum_col_highlight")[0].style.setProperty("--col", j);
     }
     let current_col = -1
     function col_left() {
