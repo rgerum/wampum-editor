@@ -122,6 +122,10 @@
             font-size: 19px;
             padding: 5px 20px;
         }
+        .count_number {
+            margin-left: 0px;
+            margin-right: 10px;
+        }
     </style>
 </head>
 <body>
@@ -390,7 +394,7 @@
         for(let i = 0; i < counts.length; i++) {
             let element = appendChild(parent, "div", {className: "wampum_item"});
             element.style.setProperty("--wampum", colors[counts[i][0]]);
-            appendChild(parent, "span", {innerText:`x${counts[i][1]} `});
+            appendChild(parent, "span", {className: "count_number", innerText:`x${counts[i][1]}`});
         }
     }
     function highlight_col(j) {
@@ -408,7 +412,7 @@
             }
         }
         let parent = document.getElementById("current_col");
-        add_count_display(parent, counts, "Col Pattern: ");
+        add_count_display(parent, counts, `Column #${j+1} Pattern: `);
         document.getElementsByClassName("wampum_col_highlight")[0].style.setProperty("--col", j);
     }
     let current_col = -1
