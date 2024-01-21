@@ -53,6 +53,8 @@
             height: 30px;
             border: 1px solid green;
             border-radius: 20px;
+            background: var(--wampum);
+            scroll-snap-align: start;
         }
         .color[selected="true"] {
             border: 1px solid red;
@@ -112,6 +114,9 @@
         }
         #color_chooser {
             margin: auto;
+            overflow: scroll;
+            scroll-snap-type: x mandatory;
+            white-space: nowrap;
         }
         .footer {
             display: flex;
@@ -125,6 +130,37 @@
         .count_number {
             margin-left: 0px;
             margin-right: 10px;
+        }
+
+        .color0 {
+            --wampum: white;
+        }
+        .color1 {
+            --wampum: black;
+        }
+        .color2 {
+            --wampum: red;
+        }
+        .color3 {
+            --wampum: #01a801;
+        }
+        .color4 {
+            --wampum: #ffcc00;
+        }
+        .color5 {
+            --wampum: #654639;
+        }
+        .color6 {
+            --wampum: #ff8006;
+        }
+        .color7 {
+            --wampum: #ff0080;
+        }
+        .color8 {
+            --wampum: #8000ff;
+        }
+        .color9 {
+            --wampum: #0080ff;
         }
     </style>
 </head>
@@ -260,7 +296,18 @@
         }
         return grid
     }
-    let colors = {"0":"white", "1": "black", "2": "red", "3": "green", "4": "yellow"}
+    let colors = {
+        "0":"color0",
+        "1": "color1",
+        "2": "color2",
+        "3": "color3",
+        "4": "color4",
+        "5": "color5",
+        "6": "color6",
+        "7": "color7",
+        "8": "color8",
+        "9": "color9",
+    }
     let current_color = "1"
     let color_chooser_buttons = {}
     function add_color_chooser() {
@@ -268,8 +315,9 @@
         parent.innerHTML = "";
         for(let color in colors) {
             let button = appendChild(parent, "button", {className: "color"});
-            button.style.setProperty("--wampum", colors[color]);
-            button.style.background = colors[color]
+            //button.style.setProperty("--wampum", colors[color]);
+            //button.style.background = colors[color]
+            button.classList.add(`color${color}`);
             button.addEventListener("click", () => {
                 choose_color(color)
             })
@@ -297,7 +345,8 @@
         if(c === current_color) c = "0";
         else c = current_color;
         grid[i][j] = c;
-        grid_divs[i][j].style.setProperty("--wampum", colors[grid[i][j]]);
+        grid_divs[i][j].className = `wampum_item color${c}`;
+        //grid_divs[i][j].style.setProperty("--wampum", colors[grid[i][j]]);
         update_counts();
     }
     function update_counts() {
@@ -343,8 +392,8 @@
             appendChild(row, "div", {className:"wampum_row_label", innerText:i+1});
             grid_divs.push([]);
             for(let j = 0; j < grid[i].length; j++){
-                let element = appendChild(row, "div", {className: "wampum_item"});
-                element.style.setProperty("--wampum", colors[grid[i][j]]);
+                const c = grid[i][j];
+                const element = appendChild(row, "div", {className: `wampum_item color${c}`});
                 element.i = i;
                 element.j = j;
                 function mouse_enter(e) {
@@ -392,8 +441,7 @@
     function add_count_display(parent, counts, text) {
         parent.innerHTML = text
         for(let i = 0; i < counts.length; i++) {
-            let element = appendChild(parent, "div", {className: "wampum_item"});
-            element.style.setProperty("--wampum", colors[counts[i][0]]);
+            let element = appendChild(parent, "div", {className: `wampum_item ${colors[counts[i][0]]}`});
             appendChild(parent, "span", {className: "count_number", innerText:`x${counts[i][1]}`});
         }
     }
