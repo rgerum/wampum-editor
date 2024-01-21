@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="initial-scale=1.0, width=device-width" />
     <title>Wampum</title>
-
+    <script src='https://unpkg.com/panzoom@9.4.0/dist/panzoom.min.js'></script>
     <style>
         body {
             --wampum-width: 20px;
@@ -61,7 +61,7 @@
         }
 
         .canvas_container {
-            overflow: scroll;
+            overflow: hidden;
             height: calc(100vh - 40px - 40px - 5px);
             width: 100%;
             background: gray;
@@ -426,6 +426,10 @@
         if(current_col >= grid[0].length) current_col = grid[0].length - 1
         highlight_col(current_col)
     }
+
+    panzoom(document.getElementsByClassName("wampum_container")[0], {
+        maxScale: 3
+    });
 
 </script>
 </body>
